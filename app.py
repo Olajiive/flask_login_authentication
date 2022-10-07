@@ -1,21 +1,21 @@
-
-from flask import Flask, render_template, url_for, redirect, request,flash
+from flask import Flask, render_template, url_for, redirect, request, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import login_required, login_user, logout_user, LoginManager, UserMixin, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 
-app = Flask(__name__, template_folder="template")
-
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
+app = Flask(__name__, template_folder="template")
+
 app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///" + os.path.join(base_dir, "user.db")
-app.config['SQLACHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] ='ec129bf735e62f2a277a9e1c'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'ec129bf735e62f2a277a9e1c'
 
 db = SQLAlchemy(app)
-
 login_manager = LoginManager(app)
+
+db.init_app(app)
 
 
 class User(db.Model, UserMixin):
@@ -28,13 +28,16 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f'user <{self.username}>'
 
+
 @login_manager.user_loader
 def user_loader(id):
     return User.query.get(int(id))
 
+
 @app.route('/')
 def index():
     return render_template("index.html")
+
 
 @app.route('/login', methods=["GET", "POST"])
 def login_post():
@@ -46,28 +49,26 @@ def login_post():
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
             return redirect(url_for("index"))
-    else:
-        return render_template('login.html')
+    return render_template('login.html')
+
 
 @app.route('/signup', methods=["GET", "POST"])
 def signup_post():
     if request.method == "POST":
         username = request.form.get("username")
         email = request.form.get("email")
-        password =  request.form.get("password")
+        password = request.form.get("password")
         confirm = request.form.get("confirm")
 
         user = User.query.filter_by(username=username).first()
-        if user :
+        if user:
             flash("Username already exists")
             return redirect(url_for('signup_post'))
-        
 
-        user_email =  User.query.filter_by(email=email).first()
-        if user_email :
+        user_email = User.query.filter_by(email=email).first()
+        if user_email:
             flash("Email address already exists")
             return redirect(url_for('signup_post'))
-
 
         password_hash = generate_password_hash(password)
         confirm = generate_password_hash(confirm)
@@ -85,6 +86,7 @@ def signup_post():
 def logout():
     logout_user()
     return render_template("index.html")
+
 
 @app.route('/profile')
 @login_required
